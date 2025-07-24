@@ -2,7 +2,6 @@ require("dotenv").config();
 
 const express = require("express");
 const mysql = require("mysql2");
-const bodyParser = require("body-parser");
 const cors = require("cors");
 const axios = require("axios");
 const bcrypt = require("bcrypt");
@@ -10,12 +9,12 @@ const bcrypt = require("bcrypt");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// ✅ Middleware
+// Middleware
 app.use(cors());
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(bodyParser.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
 
-// ✅ MySQL Connection
+// MySQL Connection
 const db = mysql.createConnection({
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
@@ -31,17 +30,17 @@ db.connect((err) => {
   }
 });
 
-// ✅ Health check route for ALB
+// Health check
 app.get("/health", (req, res) => {
   res.status(200).send("OK");
 });
 
-// ✅ Basic root response
+// Root
 app.get("/", (req, res) => {
   res.send("🚀 Zepto Backend is running!");
 });
 
-// ✅ Signup API
+// Signup
 app.post("/signup", async (req, res) => {
   const { username, email, password } = req.body;
   if (!username || !email || !password) {
@@ -51,22 +50,22 @@ app.post("/signup", async (req, res) => {
   try {
     const hashedPassword = await bcrypt.hash(password, 10);
     const sql = "INSERT INTO signup_users (username, email, password) VALUES (?, ?, ?)";
-    db.query(sql, [username, email, hashedPassword], (err, result) => {
+    db.query(sql, [username, email, hashedPassword], (err) => {
       if (err) {
         if (err.code === "ER_DUP_ENTRY") {
           return res.status(409).json({ message: "Email already registered." });
         }
         console.error("❌ Insert error:", err);
-        return res.status(500).json({ message: err.message });
+        return res.status(500).json({ message: "Database error." });
       }
       res.status(201).json({ message: "Signup successful!" });
     });
-  } catch (error) {
+  } catch {
     res.status(500).json({ message: "Server error." });
   }
 });
 
-// ✅ Login API
+// Login
 app.post("/login", (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) {
@@ -79,7 +78,6 @@ app.post("/login", (req, res) => {
       console.error("❌ Login query error:", err);
       return res.status(500).json({ message: "Something went wrong." });
     }
-
     if (results.length === 0) {
       return res.status(401).json({ message: "Invalid email or password." });
     }
@@ -95,17 +93,15 @@ app.post("/login", (req, res) => {
   });
 });
 
-// ✅ Contact form
+// Contact form
 app.post("/contact", (req, res) => {
-  console.log("📨 Contact form submission received:", req.body);
   const { name, email, message } = req.body;
-
   if (!name || !email || !message) {
     return res.status(400).json({ message: "All fields are required." });
   }
 
   const sql = "INSERT INTO contact_messages (name, email, message) VALUES (?, ?, ?)";
-  db.query(sql, [name, email, message], (err, result) => {
+  db.query(sql, [name, email, message], (err) => {
     if (err) {
       console.error("❌ Contact insert error:", err);
       return res.status(500).json({ message: "Database error." });
@@ -114,7 +110,7 @@ app.post("/contact", (req, res) => {
   });
 });
 
-// ✅ Order API
+// Order API
 app.post("/order/place-order", (req, res) => {
   const { items, total, user } = req.body;
   if (!Array.isArray(items) || items.length === 0 || !total) {
@@ -122,23 +118,18 @@ app.post("/order/place-order", (req, res) => {
   }
 
   const sql = "INSERT INTO orders (username, items, total_amount, created_at) VALUES (?, ?, ?, NOW())";
-  const values = [
-    user || "guest",
-    JSON.stringify(items),
-    total
-  ];
+  const values = [user || "guest", JSON.stringify(items), total];
 
-  db.query(sql, values, (err, result) => {
+  db.query(sql, values, (err) => {
     if (err) {
       console.error("❌ Order insert error:", err);
       return res.status(500).json({ message: "Database error." });
     }
-
     res.status(201).json({ message: "Order placed successfully!" });
   });
 });
 
-// ✅ Internal test route
+// Internal test route
 app.get("/call-private", async (req, res) => {
   try {
     const response = await axios.get("http://10.0.3.14:3000/ping");
@@ -149,7 +140,7 @@ app.get("/call-private", async (req, res) => {
   }
 });
 
-// ✅ Start server
+// Start server
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`🚀 Server running on http://0.0.0.0:${PORT}`);
+  console.log(🚀 Server running on http://0.0.0.0:${PORT});
 });
